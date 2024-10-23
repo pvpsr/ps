@@ -1,0 +1,171 @@
+Q.1 Write a C program to implement the shell. It should display the command prompt “myshell$”. Tokenize the command line and execute the given     
+    command by creating the child process. Additionally it should interpret the following ‘list’ commands as   
+    myshell$ list f dirname:- To print names of all the files in current directory. 
+
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <unistd.h>
+
+void make_toks(char *s, char *tok[])
+{
+  int i=0;
+  char *p;
+  p = strtok(s," ");
+  while(p!=NULL)
+  { 
+    tok[i++]=p;
+    p=strtok(NULL," ");
+  }
+  tok[i]=NULL;
+}
+
+void list(char *dn, char op)
+{
+  DIR *dp;
+  struct dirent *entry;
+  int dc=0,fc=0;
+  dp = opendir(dn);
+  if(dp==NULL)
+  {
+      printf("Dir %s not found.\n",dn);
+  }
+  switch(op)
+  {
+      case 'f': while(entry=readdir(dp))
+                {
+                  if(entry->d_type==DT_REG)
+                    printf("%s\n",entry->d_name);
+                } 
+                break;
+  }
+  closedir(dp);
+}
+
+int main() 
+{
+    char buff[80],*args[10];
+    int pid;
+    while(1)
+    {
+        printf("myshell$");
+        fflush(stdin);
+        fgets(buff,80,stdin);
+        buff[strlen(buff)-1]='\0';
+        make_toks(buff,args);
+        if(strcmp(args[0],"list")==0)
+            list(args[2],args[1][0]);
+        else
+        {
+            pid = fork();
+            if(pid>0)
+              wait();
+            else
+            {
+              if(execvp(args[0],args)==-1)
+                printf("Bad command.\n");
+            }
+        }
+    }
+}
+
+
+Q.2 Write the program to simulate preemptive Shortest Job First (SJF) –scheduling. The arrival time and first CPU-burst of different 
+    jobs should be input to the system. Accept no. of Processes, arrival time and burst time. The output should give Gantt chart, 
+    turnaround time and waiting time for each process. Also find the average waiting time and turnaround time 
+
+
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int id;
+    int at; // arrival time
+    int bt; // burst time
+    int rt; // remaining time
+    int wt; // waiting time
+    int tat; // turnaround time
+} Process;
+
+void find_srtf(int n, Process p[]) {
+    int completed = 0;
+    int curr_time = 0;
+    int min_rt, idx;
+
+    while (completed < n) {
+        min_rt = 9999;
+        idx = -1;
+
+        // Check for the process with the shortest remaining time
+        for (int i = 0; i < n; i++) {
+            if (p[i].at <= curr_time && p[i].rt > 0) {
+                if (p[i].rt < min_rt) {
+                    min_rt = p[i].rt;
+                    idx = i;
+                }
+            }
+        }
+
+        if (idx != -1) {
+            p[idx].rt--; // Reduce remaining time of the selected process
+            curr_time++;
+
+            // Check if the selected process is completed
+            if (p[idx].rt == 0) {
+                p[idx].tat = curr_time - p[idx].at;
+                p[idx].wt = p[idx].tat - p[idx].bt;
+                completed++;
+            }
+        } else {
+            curr_time++; // No process is ready to run, just increment time
+        }
+    }
+}
+
+void print_gantt_chart(int n, Process p[]) {
+    printf("\nGantt Chart:\n|");
+    for (int i = 0; i < n; i++) {
+        printf(" P%d |", p[i].id);
+    }
+    printf("\n");
+}
+
+int main() {
+    int n;
+    printf("Enter the number of processes: ");
+    scanf("%d", &n);
+
+    Process p[n];
+    for (int i = 0; i < n; i++) {
+        p[i].id = i + 1;
+        printf("Enter arrival time and burst time for process P%d: ", i + 1);
+        scanf("%d %d", &p[i].at, &p[i].bt);
+        p[i].rt = p[i].bt;
+        p[i].wt = 0;
+        p[i].tat = 0;
+    }
+
+    find_srtf(n, p);
+
+    int total_wt = 0;
+    int total_tat = 0;
+
+    printf("\nProcess\tArrival Time\tBurst Time\tWaiting Time\tTurnaround Time\n");
+    for (int i = 0; i < n; i++) {
+        total_wt += p[i].wt;
+        total_tat += p[i].tat;
+        printf("P%d\t%d\t\t%d\t\t%d\t\t%d\n", p[i].id, p[i].at, p[i].bt, p[i].wt, p[i].tat);
+    }
+
+    printf("\nAverage Waiting Time: %.2f", (float)total_wt / n);
+    printf("\nAverage Turnaround Time: %.2f\n", (float)total_tat / n);
+
+    print_gantt_chart(n, p);
+
+    return 0;
+}

@@ -1,0 +1,190 @@
+Q.1 Write a C program that accepts an integer array. Main function forks child process.Parent process sorts an integer array and passes the 
+    sorted array to child process through the  command line arguments of execve() system call.The child process uses execve() system  call 
+    to load new program that uses this sorted array for performing the binary search to search the particular item in the array.  
+
+
+// save this program as parent.c and run itt
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <wait.h>
+
+void sortArray(int* arr, int n) {
+    for (int i = 0; i < n - 1; i++)
+        for (int j = 0; j < n - i - 1; j++)
+            if (arr[j] > arr[j + 1]) {
+                int temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+}
+
+int main() {
+    int n;
+    printf("Enter number of elements: ");
+    scanf("%d", &n);
+
+    int* arr = malloc(n * sizeof(int));
+    printf("Enter %d integers:\n", n);
+    for (int i = 0; i < n; i++)
+        scanf("%d", &arr[i]);
+
+    sortArray(arr, n);
+
+    // Prepare arguments for the child process
+    char* args[n + 2]; // +1 for the program name and +1 for NULL
+    args[0] = "./child"; // Name of the child program
+    for (int i = 0; i < n; i++) {
+        args[i + 1] = malloc(12);
+        sprintf(args[i + 1], "%d", arr[i]);
+    }
+    args[n + 1] = NULL; // NULL-terminate the arguments
+
+    // Forking a child process
+    if (fork() == 0) {
+        execve("./child", args, NULL);
+        perror("execve failed"); // execve only returns on failure
+    }
+
+    // Free allocated memory
+    for (int i = 1; i <= n; i++)
+        free(args[i]);
+    free(arr);
+
+    wait(NULL); // Wait for the child process to finish
+    return 0;
+}
+
+
+
+//Save this program as child.c 
+
+#include <stdio.h>
+#include <stdlib.h>
+
+int binarySearch(int arr[], int n, int x) {
+    int left = 0, right = n - 1;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (arr[mid] == x) return mid;
+        if (arr[mid] < x) left = mid + 1;
+        else right = mid - 1;
+    }
+    return -1; // Not found
+}
+
+int main(int argc, char* argv[]) {
+    if (argc < 3) {
+        printf("Usage: %s <sorted_array_elements>\n", argv[0]);
+        return 1;
+    }
+
+    int n = argc - 1; // Number of elements
+    int* arr = malloc(n * sizeof(int));
+
+    for (int i = 1; i <= n; i++)
+        arr[i - 1] = atoi(argv[i]); // Convert strings to integers
+
+    int x;
+    printf("Enter an element to search: ");
+    scanf("%d", &x);
+
+    int result = binarySearch(arr, n, x);
+    if (result != -1)
+        printf("Element %d found at index %d\n", x, result);
+    else
+        printf("Element %d not found in the array\n", x);
+
+    free(arr); // Free allocated memory
+    return 0;
+}
+
+
+
+    
+
+Q.2 Write a program to implement the shell. It should display the command prompt “myshell$”. Tokenize the command line and execute the given  
+       command by  creating the child process. Additionally it should interpret  the  following commands.  
+       myshell$ search f filename pattern:- To display first occurrence of pattern in the file. 
+
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
+
+void make_toks(char *s, char *tok[])
+{
+   int i=0;
+   char *p;
+   p = strtok(s," ");
+   while(p!=NULL)
+   {
+      tok[i++]=p;
+      p=strtok(NULL," ");
+   }
+   tok[i]=NULL;
+}
+
+void search(char *fn, char op, char *pattern)
+{
+   int fh,count=0,i=0,j=0;
+   char buff[255],c,*p;
+   fh = open(fn,O_RDONLY);
+   if(fh==-1)
+   {
+      printf("File %s Not Found\n",fn);
+      return;
+   }
+   
+   switch(op)
+   {
+       case 'f':while(read(fh,&c,1))
+                {
+                   buff[j++]=c;
+                   if(c=='\n')
+                   {
+                      buff[j]='\0';
+                      j=0;
+                      i++;
+                      if(strstr(buff,pattern))
+                      {
+                         printf("%d: %s",i,buff);
+                         break;
+                      }
+                   }
+                }
+                break;
+   }
+   close(fh);
+}
+
+int main()
+{
+ char buff[80],*args[10];
+ int pid;
+ while(1)
+ {
+    printf("myshell$");
+    fflush(stdin);
+    fgets(buff,80,stdin);
+    buff[strlen(buff)-1]='\0';
+    make_toks(buff,args);
+    if(strcmp(args[0],"search")==0)
+      search(args[3],args[1][0],args[2]);
+    else
+    {
+       pid = fork();
+       if(pid>0)
+          wait();
+       else
+       {
+          if(execvp(args[0],args)==-1)
+            printf("Bad command.\n");
+       }
+    }
+  }
+}                                                                     

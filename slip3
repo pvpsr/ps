@@ -1,0 +1,174 @@
+Q.1 Write the simulation program to implement demand paging and show the page scheduling and total number of page faults according to the 
+    LRU (using counter method) page replacement algorithm. Assume the memory of n frames. Reference String :   3,5,7,2,5,1,2,3,1,3,5,3,1,6,2
+
+
+#include<stdio.h>
+
+int main() {
+    int seq[50], fr[5], used[5], n, f, i, j, k, pos, pf = 0;
+
+    // Input the number of pages in the reference string
+    printf("Enter number of pages: ");
+    scanf("%d", &n);
+
+    // Input the reference string
+    printf("Enter the reference string: ");
+    for(i = 0; i < n; i++) {
+        scanf("%d", &seq[i]);
+    }
+
+    // Input the number of frames
+    printf("Enter number of frames: ");
+    scanf("%d", &f);
+
+    // Initialize frames and used times to -1 (empty)
+    for(i = 0; i < f; i++) {
+        fr[i] = -1;
+        used[i] = -1;
+    }
+
+    // Loop through each page in the reference string
+    for(i = 0; i < n; i++) {
+        int found = 0;  // Flag to check if page is already in a frame
+
+        // Check if page is already in one of the frames
+        for(j = 0; j < f; j++) {
+            if(fr[j] == seq[i]) {
+                found = 1;
+                used[j] = i;  // Update the last used time
+                break;
+            }
+        }
+
+        // If page is not found in frames (page fault)
+        if(!found) {
+            pf++;  // Increment page fault count
+
+            // If there's an empty frame, use it
+            for(j = 0; j < f; j++) {
+                if(fr[j] == -1) {
+                    fr[j] = seq[i];
+                    used[j] = i;  // Update last used time
+                    found = 1;
+                    break;
+                }
+            }
+
+            // If no empty frame, replace the least recently used page
+            if(!found) {
+                pos = 0;  // Position of least recently used page
+                for(j = 1; j < f; j++) {
+                    if(used[j] < used[pos]) {
+                        pos = j;
+                    }
+                }
+
+                // Replace the least recently used page
+                fr[pos] = seq[i];
+                used[pos] = i;  // Update last used time
+            }
+
+            // Print the current state of frames
+            for(k = 0; k < f; k++) {
+                printf("%d\t", fr[k]);
+            }
+            printf("\n");
+        }
+    }
+
+    // Output total number of page faults
+    printf("\nThe number of page faults is %d\n", pf);
+
+    return 0;
+}
+
+
+
+
+
+Q.2 Write a programto implement the toy shell. It should display the command prompt “myshell$”. Tokenize the command line and execute the given   
+    command by creating the child process. Additionally it should interpret the following commands.  
+    count c filename :- To print number of characters in the file.
+    count w filename :- To print number of words in the file. 
+    count l filename :- To print number of lines in the file.
+
+
+#include<stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <string.h>
+
+void make_toks(char *s, char *tok[])
+{
+   int i=0;
+   char *p;
+   p = strtok(s," ");
+   while(p!=NULL)
+   {
+      tok[i++]=p;
+      p=strtok(NULL," ");
+   }
+   tok[i]=NULL;
+}
+
+
+void count(char *fn, char op)
+{
+   int fh,cc=0,wc=0,lc=0;
+   char c;
+   fh = open(fn,O_RDONLY);
+   if(fh==-1)
+   {
+      printf("File %s not found.\n",fn);
+   }
+   while(read(fh,&c,1)>0)
+   {
+      if(c==' ') 
+        wc++;
+      else if(c=='\n')
+      {
+         wc++;
+         lc++;
+      }
+      cc++;
+   }
+   close(fh);
+
+   switch(op)
+   {
+     case 'c':printf("No.of characters:%d\n",cc);
+              break;
+     case 'w':printf("No.of words:%d\n",wc);
+              break;
+     case 'l':printf("No.of lines:%d\n",lc);
+              break;
+   }
+}
+
+int main()
+{
+   char buff[80],*args[10];
+   int pid;
+   while(1)
+   {
+      printf("myshell$");
+      fflush(stdin);
+      fgets(buff,80,stdin);
+      buff[strlen(buff)-1]='\0';
+      make_toks(buff,args);
+      if(strcmp(args[0],"count")==0)
+          count(args[2],args[1][0]);
+      else
+      {
+         pid = fork();
+         if(pid>0)
+            wait();
+         else
+         {
+          if(execvp(args[0],args)==-1)
+            printf("Bad command.\n");
+         }
+      }
+   }
+}

@@ -1,0 +1,108 @@
+Q.1 Write a C Program to create a child process using fork (), display parent and child process id. Child process will display the message 
+    “I am Child Process” and the parent process should display “I am Parent Process”.
+
+
+#include <stdio.h>
+#include <sys/types.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<string.h>
+
+int main()
+{
+  pid_t pid;
+  pid=fork();
+  
+  if(pid==0)
+  {
+    printf("I am Child Process. My ID is %d\n",getpid());
+  }
+  else
+  {
+    printf("I am Parent Process. My ID is %d\n",getppid());
+  }
+}
+    
+
+
+Q.2 Write a C program to simulate Preemptive Priority scheduling. The arrival time and first CPU-burst and priority for different n number of       
+    processes should be input to the algorithm. Assume the fixed IO waiting time (2 units). The next CPU-burst should be generated randomly. 
+    The output should give Gantt chart, turnaround time and waiting time for each process.Also find the average waiting time and turnaround time. 
+
+
+#include <stdio.h>
+
+void main() {
+    int p[10], at[10], bt[10], pr[10], rt[10], wt[10], tt[10];
+    int i, j, n, completed = 0, curr_time = 0, min_priority;
+    float awt = 0, att = 0;
+
+    printf("How many processes: ");
+    scanf("%d", &n);
+
+    for (i = 0; i < n; i++) {
+        printf("\nProcess %d:\n", i + 1);
+        p[i] = i + 1;  // Process ID
+        printf("Enter Arrival Time: ");
+        scanf("%d", &at[i]);
+        printf("Enter Burst Time: ");
+        scanf("%d", &bt[i]);
+        printf("Enter Priority (lower value indicates higher priority): ");
+        scanf("%d", &pr[i]);
+        rt[i] = bt[i]; // Remaining time initialized to burst time
+    }
+
+    printf("\nGantt Chart:\n");
+
+    // Preemptive Priority Scheduling
+    while (completed < n) {
+        min_priority = 9999; // Initialize minimum priority
+        int idx = -1; // Index of the selected process
+
+        // Find the process with the highest priority (lowest number)
+        for (i = 0; i < n; i++) {
+            if (at[i] <= curr_time && rt[i] > 0) {
+                if (pr[i] < min_priority) {
+                    min_priority = pr[i];
+                    idx = i;
+                }
+            }
+        }
+
+        if (idx != -1) {
+            // Print the current process being executed
+            printf("P%d |", p[idx]);
+            rt[idx]--; // Reduce remaining time of the selected process
+            curr_time++; // Increment current time
+
+            // If the process is completed
+            if (rt[idx] == 0) {
+                completed++;
+                tt[idx] = curr_time - at[idx]; // Turnaround Time
+                wt[idx] = tt[idx] - bt[idx]; // Waiting Time
+            }
+        } else {
+            // If no process is ready, just increment current time
+            printf("Idle |");
+            curr_time++;
+        }
+    }
+    printf("\n");
+
+    // Calculate averages
+    for (i = 0; i < n; i++) {
+        awt += wt[i];
+        att += tt[i];
+    }
+    awt /= n;
+    att /= n;
+
+    // Print process details
+    printf("\nProcess\tAT\tBT\tPriority\tWT\tTT\n");
+    for (i = 0; i < n; i++) {
+        printf("P%d\t%d\t%d\t%d\t\t%d\t%d\n", p[i], at[i], bt[i], pr[i], wt[i], tt[i]);
+    }
+
+    printf("\nAverage Waiting Time: %.2f", awt);
+    printf("\nAverage Turnaround Time: %.2f\n", att);
+}

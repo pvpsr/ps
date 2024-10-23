@@ -1,0 +1,124 @@
+Q.1 Write a C program to illustrate the concept of orphan process. Parent process creates a child and terminates before child has finished its 
+task. So child process becomes orphan process. (Use fork(), sleep(), getpid(), getppid()).
+
+#include<stdio.h> 
+#include<sys/types.h>
+#include<unistd.h>
+
+int main() 
+{ 
+    int pid;
+    printf("Parent Process ID is : %d\n", getpid()); 
+    printf("\n[Forking Child Process ... ] \n"); 
+    
+    pid = fork();
+    if (pid < 0)
+    {  
+        printf("\nProcess cannot be created.");
+    } 
+    else if (pid == 0) 
+    {  
+        printf("\nChild Process is Sleeping ..."); 
+        sleep(5);  
+        printf("\nOrphan Child's Process ID : %d", getpid());
+        printf("\nOrphan Child's New Parent ID : %d\n", getppid());  
+    } 
+    else 
+    {  
+        printf("\nParent Process Completed and exiting ...\n"); 
+        sleep(2);  
+    }
+}
+
+
+Q.2  Write the simulation program for demand paging and show the page scheduling and total number of page faults according the Optimal page  
+     replacement algorithm. Assume the memory of n frames. Reference String :   7, 5, 4, 8, 5, 7, 2, 3, 1, 3, 5, 9, 4, 6,
+
+
+#include<stdio.h>
+
+int main() {
+    int seq[50], fr[5], future[5], n, f, i, j, k, pos, pf = 0;
+
+    // Input the number of pages in the reference string
+    printf("Enter number of pages: ");
+    scanf("%d", &n);
+
+    // Input the reference string
+    printf("Enter the reference string: ");
+    for(i = 0; i < n; i++) {
+        scanf("%d", &seq[i]);
+    }
+
+    // Input the number of frames
+    printf("Enter number of frames: ");
+    scanf("%d", &f);
+
+    // Initialize frames to -1 (empty)
+    for(i = 0; i < f; i++) {
+        fr[i] = -1;
+    }
+
+    // Loop through each page in the reference string
+    for(i = 0; i < n; i++) {
+        int found = 0;  // Flag to check if page is already in a frame
+
+        // Check if the page is already in one of the frames
+        for(j = 0; j < f; j++) {
+            if(fr[j] == seq[i]) {
+                found = 1;
+                break;
+            }
+        }
+
+        // If the page is not found in the frames (page fault)
+        if(!found) {
+            pf++;  // Increment page fault count
+
+            // If there is an empty frame, use it
+            for(j = 0; j < f; j++) {
+                if(fr[j] == -1) {
+                    fr[j] = seq[i];
+                    found = 1;
+                    break;
+                }
+            }
+
+            // If no empty frame, replace the page that is used farthest in the future
+            if(!found) {
+                // Calculate how far in the future each frame's page is used
+                for(j = 0; j < f; j++) {
+                    future[j] = -1;  // If the page is not used in the future, set to -1
+                    for(k = i + 1; k < n; k++) {
+                        if(fr[j] == seq[k]) {
+                            future[j] = k;
+                            break;
+                        }
+                    }
+                }
+
+                // Find the page that is used farthest in the future (or not at all)
+                pos = 0;
+                for(j = 1; j < f; j++) {
+                    if(future[j] == -1 || future[j] > future[pos]) {
+                        pos = j;
+                    }
+                }
+
+                // Replace the page in the frame
+                fr[pos] = seq[i];
+            }
+
+            // Print the current state of frames
+            for(k = 0; k < f; k++) {
+                printf("%d\t", fr[k]);
+            }
+            printf("\n");
+        }
+    }
+
+    // Output total number of page faults
+    printf("\nThe number of page faults is %d\n", pf);
+
+    return 0;
+}

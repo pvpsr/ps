@@ -1,0 +1,177 @@
+Q.1 Write the simulation program to implement demand paging and show the page scheduling and total number of page faults according to the 
+    LFU page replacement algorithm. Assume the memory of n frames.Reference String : 3,4,5,4,3,4,7,2,4,5,6,7,2,4,6
+
+
+
+#include<stdio.h>
+int main() {
+    int seq[50], fr[5], freq[5], n, f, i, j, pos, pf = 0;
+
+    // Input the number of pages in the reference string
+    printf("Enter number of pages: ");
+    scanf("%d", &n);
+
+    // Input the reference string
+    printf("Enter the reference string: ");
+    for(i = 0; i < n; i++) {
+        scanf("%d", &seq[i]);
+    }
+
+    // Input the number of frames
+    printf("Enter number of frames: ");
+    scanf("%d", &f);
+
+    // Initialize frames and frequency to -1 and 0 respectively
+    for(i = 0; i < f; i++) {
+        fr[i] = -1;
+        freq[i] = 0;  // Track usage frequency
+    }
+
+    // Loop through each page in the reference string
+    for(i = 0; i < n; i++) {
+        int found = 0;
+
+        // Check if the page is already in one of the frames
+        for(j = 0; j < f; j++) {
+            if(fr[j] == seq[i]) {
+                found = 1;
+                freq[j]++;  // Increase frequency count
+                break;
+            }
+        }
+
+        // If the page is not found (page fault)
+        if(!found) {
+            pf++;  // Increment page fault count
+
+            // If there is an empty frame, use it
+            for(j = 0; j < f; j++) {
+                if(fr[j] == -1) {
+                    fr[j] = seq[i];
+                    freq[j] = 1;  // Set frequency count to 1
+                    found = 1;
+                    break;
+                }
+            }
+
+            // If no empty frame, replace the least frequently used page
+            if(!found) {
+                pos = 0;  // Position of least frequently used page
+                for(j = 1; j < f; j++) {
+                    if(freq[j] < freq[pos]) {
+                        pos = j;
+                    }
+                }
+
+                fr[pos] = seq[i];  // Replace least frequently used page
+                freq[pos] = 1;     // Reset frequency count for new page
+            }
+
+            // Print the current state of frames
+            for(j = 0; j < f; j++) {
+                printf("%d\t", fr[j]);
+            }
+            printf("\n");
+        }
+    }
+
+    // Output total number of page faults
+    printf("\nThe number of page faults is %d\n", pf);
+
+    return 0;
+}
+
+
+
+
+Q.2 Write a C program to implement the shell which displays the command prompt “myshell$”. It accepts the command, tokenize the command line 
+    and execute it by creating the child process. Also implement the additional command ‘typeline’ as 
+    typeline +n filename :- To print first n lines in the file.    
+    typeline a filename :- To print all  lines in the file.    
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <unistd.h>
+
+void make_toks(char *s, char *tok[])
+{
+   int i=0;
+   char *p;
+   p = strtok(s," ");
+   while(p!=NULL)
+   {
+      tok[i++]=p;
+      p=strtok(NULL," ");
+   }
+   tok[i]=NULL;
+}
+
+void typeline(char *fn, char *op)
+{
+   int fh,i,j,n;
+   char c;
+   fh = open(fn,O_RDONLY);
+   if(fh==-1)
+   {
+    printf("File %s not found.\n",fn);
+   }
+
+   if(strcmp(op,"a")==0)             //For Typeline a
+   {
+      while(read(fh,&c,1)>0)
+          printf("%c",c);
+      close(fh);
+      return;
+   }
+
+   n = atoi(op);                     //For Typeline +n 
+   if(n>0)
+   {
+      i=0;
+      while(read(fh,&c,1)>0)
+      {
+         printf("%c",c);
+         if(c=='\n') 
+            i++;
+         if(i==n) 
+            break;
+      }
+      close(fh);
+   }
+   
+}
+
+int main()
+{
+ char buff[80],*args[10];
+ int pid;
+
+ while(1)
+ {
+  printf("myshell$");
+  fflush(stdin);
+  fgets(buff,80,stdin);
+  buff[strlen(buff)-1]='\0';
+  make_toks(buff,args);
+  if(strcmp(args[0],"typeline")==0)
+   typeline(args[2],args[1]);
+  else
+  {
+   pid = fork();
+   if(pid>0)
+    wait();
+   else
+   {
+    if(execvp(args[0],args)==-1)
+     printf("Bad command.\n");
+   }
+  }
+ }
+}
+                
+
